@@ -3,7 +3,7 @@
 # nothing here is inferred or guessed by the system.
 
 name: Naveen Chacko
-experience_years: 2.5
+experience_years: 2.9
 
 target_titles:
   - Python Backend Engineer
@@ -60,8 +60,17 @@ experience_range:
 locations:
   - Bangalore
   - Bengaluru
+  - Trivandrum
+  - Thiruvananthapuram
+  - Kochi
+  - Mysore
+  - Hyderabad
+  - Mumbai
+  - Chennai
   - India
   - Remote
+  - Hybrid
+  - Work from home
 
 work_modes:
   - REMOTE
@@ -77,7 +86,7 @@ avoid:
     - .NET
     - Node.js
     - Node
-  min_experience_hard_ceiling_years: 6 # roles requiring materially more than this score down heavily
+  min_experience_hard_ceiling_years: 5 # roles requiring materially more than this score down heavily
   internships: true
   very_low_salary: true
 
