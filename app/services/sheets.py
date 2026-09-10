@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Protocol
 
-from app.models.job import Job
+from app.models.job import Job, Priority
 
 logger = logging.getLogger(__name__)
 
@@ -94,14 +94,31 @@ def _sort_key(row: list[str]) -> tuple:
     return (score, salary_num, date_str)
 
 
+def _is_skip_priority(job: Job) -> bool:
+    return job.priority == Priority.SKIP
+
+
+def _is_skip_sheet_row(row: list[str]) -> bool:
+    if len(row) < 10:
+        return False
+    return "SKIP" in row[9].upper()
+
+
 def sync_jobs_to_sheet(client: SheetsClient, jobs: list[Job]) -> None:
-    """Full upsert-and-resort: builds the desired row set from `jobs`, merges it
-    with whatever's already in the sheet keyed by Job ID, then rewrites the sheet."""
+    """Full upsert-and-resort. SKIP-priority jobs never appear on the sheet."""
     existing_rows = client.get_all_rows()
-    existing_by_id = {row[0]: row for row in existing_rows[1:] if row}  # skip header
+    existing_by_id = {
+        row[0]: row
+        for row in existing_rows[1:]
+        if row and not _is_skip_sheet_row(row)
+    }
 
     for job in jobs:
-        existing_by_id[str(job.id)] = job_to_row(job)
+        job_id = str(job.id)
+        if _is_skip_priority(job):
+            existing_by_id.pop(job_id, None)
+            continue
+        existing_by_id[job_id] = job_to_row(job)
 
     data_rows = sorted(existing_by_id.values(), key=_sort_key)
     client.write_all_rows([HEADER_ROW, *data_rows])

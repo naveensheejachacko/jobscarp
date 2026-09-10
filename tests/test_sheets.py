@@ -78,3 +78,23 @@ def test_sync_sorts_by_match_score_descending():
     )
     scores_in_order = [row[8] for row in client.rows[1:]]
     assert scores_in_order == ["95", "80", "65"]
+
+
+def test_sync_omits_skip_jobs_and_drops_old_skip_rows():
+    client = FakeSheetsClient()
+    sync_jobs_to_sheet(client, [_job(1, match_score=40, priority=Priority.SKIP)])
+    assert client.rows == [HEADER_ROW]
+
+    sync_jobs_to_sheet(client, [_job(2, match_score=88, priority=Priority.STRONG)])
+    assert {row[0] for row in client.rows[1:]} == {"2"}
+
+    # A later SKIP rescore must remove the row, not leave stale data.
+    sync_jobs_to_sheet(
+        client,
+        [
+            _job(2, match_score=30, priority=Priority.SKIP),
+            _job(3, match_score=72, priority=Priority.CONSIDER),
+        ],
+    )
+    ids_present = {row[0] for row in client.rows[1:]}
+    assert ids_present == {"3"}

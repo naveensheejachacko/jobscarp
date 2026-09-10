@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     gmail_token_path: str = "./token.json"
     gmail_query_cutshort: str = "from:(cutshort.io)"
     gmail_query_instahyre: str = "from:(instahyre.com)"
+    gmail_query_linkedin: str = "from:(linkedin.com) (subject:job OR subject:jobs OR subject:hiring)"
+    gmail_query_naukri: str = "from:(naukri.com)"
 
     # Google Sheets
     google_sheet_id: str = ""

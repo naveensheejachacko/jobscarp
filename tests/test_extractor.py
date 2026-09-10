@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from app.schemas.job import ExtractedJob, ExtractionFailure, RawEmail
-from app.services.extractor import CutshortParser, InstahyreParser, extract_job
+from app.services.extractor import CutshortParser, InstahyreParser, LinkedInParser, NaukriParser, extract_job
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -83,11 +83,46 @@ def test_extract_job_dispatches_by_source():
 def test_extract_job_unknown_source_fails_safely():
     raw = RawEmail(
         message_id="m5",
-        source="linkedin",  # not registered yet
+        source="unknownboard",
         subject="Some Job - Some Co",
-        sender="jobs@linkedin.com",
+        sender="jobs@example.com",
         snippet="n/a",
     )
     result = extract_job(raw)
     assert isinstance(result, ExtractionFailure)
-    assert "linkedin" in result.reason
+    assert "unknownboard" in result.reason
+
+
+def test_linkedin_digest_extracts_each_job_card():
+    raw = RawEmail(
+        message_id="li1",
+        source="linkedin",
+        subject="Your job alert for python backend",
+        sender="jobalerts-noreply@linkedin.com",
+        html_body=_load_html("linkedin_job_alert.html"),
+    )
+    result = LinkedInParser().parse_many(raw)
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert result[0].company == "Acme Labs"
+    assert result[0].job_title == "Python Backend Engineer"
+    assert "111111" in result[0].job_url
+    assert result[1].company == "Zenith Labs"
+    assert result[1].source == "linkedin"
+
+
+def test_naukri_card_extracts_fields():
+    raw = RawEmail(
+        message_id="nk1",
+        source="naukri",
+        subject="Python jobs in Hyderabad",
+        sender="noreply@naukri.com",
+        html_body=_load_html("naukri_job_alert.html"),
+    )
+    result = NaukriParser().parse(raw)
+    assert isinstance(result, ExtractedJob)
+    assert result.company == "Nimbus Tech"
+    assert result.job_title == "Python Developer"
+    assert result.location == "Hyderabad"
+    assert result.salary_text == "12-18 LPA"
+    assert "job-listings" in result.job_url

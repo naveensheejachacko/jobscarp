@@ -16,7 +16,7 @@ from app.models.job import Job
 from app.schemas.job import ExtractedJob, ExtractionFailure, RawEmail
 from app.services.ai import BaseLLMProvider, get_llm_provider, safe_analyze_job, safe_generate_message
 from app.services.deduplicator import find_duplicate
-from app.services.extractor import extract_job
+from app.services.extractor import extract_job, extract_jobs
 from app.services.gmail import EmailFetcher, GmailClient
 from app.services.matcher import normalized_from_job, score_job
 from app.services.normalizer import normalize_job
@@ -28,10 +28,13 @@ MESSAGE_GENERATION_THRESHOLD = 80
 
 
 def _sources(settings: Settings) -> dict[str, str]:
-    return {
+    candidates = {
         "cutshort": settings.gmail_query_cutshort,
         "instahyre": settings.gmail_query_instahyre,
+        "linkedin": settings.gmail_query_linkedin,
+        "naukri": settings.gmail_query_naukri,
     }
+    return {source: query for source, query in candidates.items() if query.strip()}
 
 
 def process_one_email(
@@ -47,7 +50,15 @@ def process_one_email(
     if isinstance(extracted, ExtractionFailure):
         logger.info("pipeline.extraction_failed", extra={"reason": extracted.reason})
         return None
+    return _upsert_extracted_job(extracted, db, profile, llm_provider)
 
+
+def _upsert_extracted_job(
+    extracted: ExtractedJob,
+    db: Session,
+    profile: CandidateProfile,
+    llm_provider: BaseLLMProvider | None,
+) -> Job:
     normalized = normalize_job(extracted)
     existing = find_duplicate(db, normalized)
 
@@ -137,8 +148,9 @@ def run_once(
         db.expire_on_commit = False
         for source, query in _sources(settings).items():
             for raw in fetcher.fetch_new(query, source):
-                extracted = extract_job(raw)
-                if isinstance(extracted, ExtractionFailure):
+                extracted_batch = extract_jobs(raw)
+                if isinstance(extracted_batch, ExtractionFailure):
+                    logger.info("pipeline.extraction_failed", extra={"reason": extracted_batch.reason})
                     fetcher.mark_processed(
                         raw.message_id, source,
                         extraction_failed=True,
@@ -146,16 +158,19 @@ def run_once(
                     )
                     continue
 
-                job = process_one_email(raw, db, profile, llm_provider)
-                db.commit()
-                if job is not None:
-                    fetcher.mark_processed(raw.message_id, source, job_id=job.id)
+                last_job: Job | None = None
+                for extracted in extracted_batch:
+                    job = _upsert_extracted_job(extracted, db, profile, llm_provider)
+                    db.commit()
+                    last_job = job
                     processed_jobs.append(job)
                     if job.match_score is not None and job.match_score >= settings.notify_min_score:
                         try:
                             notifier.notify(job)
                         except Exception as exc:  # noqa: BLE001
                             logger.warning("pipeline.notify_failed", extra={"error": str(exc)})
+                if last_job is not None:
+                    fetcher.mark_processed(raw.message_id, source, job_id=last_job.id)
 
         for stored in db.query(Job).all():
             rescored = score_job(normalized_from_job(stored), profile)
