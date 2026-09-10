@@ -1,0 +1,88 @@
+# Candidate profile — the single source of truth for matching and AI prompts.
+# The matcher and LLM prompts read ONLY what's written here. Keep it accurate;
+# nothing here is inferred or guessed by the system.
+
+name: Naveen Chacko
+experience_years: 2.5
+
+target_titles:
+  - Python Backend Engineer
+  - Backend Developer
+  - Software Engineer - Backend
+  - Python Developer
+  - Django Developer
+  - FastAPI Developer
+  - Backend Engineer
+
+# Core skills carry more weight in technical-match scoring than bonus skills.
+core_skills:
+  - Python
+  - Django
+  - Django REST Framework
+  - DRF
+  - FastAPI
+  - PostgreSQL
+  - REST APIs
+  - REST API
+
+bonus_skills:
+  - Redis
+  - Celery
+  - Docker
+  - AWS
+  - ECS
+  - Fargate
+  - ECR
+  - EC2
+  - S3
+  - IAM
+  - WebSockets
+  - Elasticsearch
+  - JWT
+  - Payment integrations
+  - Third-party API integrations
+  - Background processing
+  - Async processing
+  - Database design
+  - Database optimization
+  - Microservices
+  - System design
+
+salary:
+  currency: INR
+  min_acceptable_lpa: 12
+  preferred_lpa: 15
+
+experience_range:
+  min_years: 2
+  max_years: 5
+
+locations:
+  - Bangalore
+  - Bengaluru
+  - India
+  - Remote
+
+work_modes:
+  - REMOTE
+  - HYBRID
+  - ONSITE
+
+# Signals that push backend-relevance and company-quality scores down.
+avoid:
+  primary_frontend: true
+  react_primary: true
+  other_backend_stacks:
+    - Java
+    - .NET
+    - Node.js
+    - Node
+  min_experience_hard_ceiling_years: 6 # roles requiring materially more than this score down heavily
+  internships: true
+  very_low_salary: true
+
+preferences:
+  - Backend-heavy roles
+  - Product companies
+  - Good startups
+  - APIs / platform engineering
