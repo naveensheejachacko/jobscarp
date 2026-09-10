@@ -8,6 +8,7 @@ is attempted anywhere downstream.
 from __future__ import annotations
 
 import base64
+import json
 import logging
 from collections.abc import Callable
 from email.utils import parsedate_to_datetime
@@ -48,7 +49,9 @@ class GmailClient:
         creds: Credentials | None = None
         try:
             creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
-        except FileNotFoundError:
+        except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            # Empty `touch token.json` (Docker volume) or a truncated file must
+            # start the browser flow, not crash before OAuth.
             creds = None
 
         if creds and creds.valid:

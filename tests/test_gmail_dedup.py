@@ -122,3 +122,31 @@ def test_parse_raw_message_extracts_headers_and_body():
     assert raw.sender == "jobs@cutshort.io"
     assert "Great backend role" in raw.text_body
     assert raw.received_at is not None
+
+
+def test_empty_token_file_starts_oauth_instead_of_json_error(tmp_path, monkeypatch):
+    from app.services.gmail import GmailClient
+
+    token_path = tmp_path / "token.json"
+    token_path.write_text("")
+    creds_path = tmp_path / "credentials.json"
+    creds_path.write_text("{}")
+
+    class FakeCreds:
+        valid = True
+
+        def to_json(self) -> str:
+            return '{"token": "ok"}'
+
+    class FakeFlow:
+        @classmethod
+        def from_client_secrets_file(cls, *_args, **_kwargs):
+            return cls()
+
+        def run_local_server(self, port: int = 0):
+            return FakeCreds()
+
+    monkeypatch.setattr("app.services.gmail.InstalledAppFlow", FakeFlow)
+    client = GmailClient(str(creds_path), str(token_path))
+    client._load_credentials()
+    assert token_path.read_text() == '{"token": "ok"}'

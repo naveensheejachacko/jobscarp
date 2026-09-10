@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: jobauto
       POSTGRES_DB: jobauto
     ports:
-      - "5433:5432"  # host 5433 -> avoids clashing with a local Postgres on 5432
+      - "5434:5432"  # host 5434 — 5433 often taken by another local Postgres
     volumes:
       - jobauto_pgdata:/var/lib/postgresql/data
     healthcheck:
