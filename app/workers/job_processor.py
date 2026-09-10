@@ -134,6 +134,7 @@ def run_once(
     processed_jobs: list[Job] = []
 
     with session_factory() as db:
+        db.expire_on_commit = False
         for source, query in _sources(settings).items():
             for raw in fetcher.fetch_new(query, source):
                 extracted = extract_job(raw)
