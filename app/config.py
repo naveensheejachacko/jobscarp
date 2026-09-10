@@ -32,11 +32,13 @@ class Settings(BaseSettings):
     google_sheet_id: str = ""
 
     # LLM
-    llm_provider: str = "gemini"  # "gemini" | "anthropic"
+    llm_provider: str = "gemini"  # "gemini" | "anthropic" | "deepseek"
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-opus-5"
+    deepseek_api_key: str = ""
+    deepseek_model: str = "deepseek-chat"
 
     # Notifications
     notify_min_score: int = 90

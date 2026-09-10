@@ -1,5 +1,5 @@
 """LLM integration, kept fully behind an abstract provider so swapping models
-or vendors is a one-line .env change (LLM_PROVIDER=gemini|anthropic).
+or vendors is a one-line .env change (LLM_PROVIDER=gemini|anthropic|deepseek).
 
 Two responsibilities:
   1. analyze_job() — qualitative JD analysis (matched/missing skills narrative,
@@ -195,11 +195,32 @@ class AnthropicProvider(BaseLLMProvider):
         return "".join(block.text for block in response.content if block.type == "text")
 
 
+class DeepSeekProvider(BaseLLMProvider):
+    """DeepSeek's API is OpenAI-compatible, so this just points the `openai`
+    SDK at DeepSeek's base URL instead of OpenAI's — no separate DeepSeek SDK
+    needed. Model names: "deepseek-chat" (V3) or "deepseek-reasoner" (R1)."""
+
+    def __init__(self, api_key: str, model: str):
+        from openai import OpenAI
+
+        self._client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+        self._model = model
+
+    def _complete(self, prompt: str) -> str:
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content or ""
+
+
 def get_llm_provider(settings: Settings) -> BaseLLMProvider:
     if settings.llm_provider == "gemini":
         return GeminiProvider(settings.gemini_api_key, settings.gemini_model)
     if settings.llm_provider == "anthropic":
         return AnthropicProvider(settings.anthropic_api_key, settings.anthropic_model)
+    if settings.llm_provider == "deepseek":
+        return DeepSeekProvider(settings.deepseek_api_key, settings.deepseek_model)
     raise ValueError(f"Unknown LLM_PROVIDER: {settings.llm_provider!r}")
 
 
