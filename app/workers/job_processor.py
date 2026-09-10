@@ -18,7 +18,7 @@ from app.services.ai import BaseLLMProvider, get_llm_provider, safe_analyze_job,
 from app.services.deduplicator import find_duplicate
 from app.services.extractor import extract_job
 from app.services.gmail import EmailFetcher, GmailClient
-from app.services.matcher import score_job
+from app.services.matcher import normalized_from_job, score_job
 from app.services.normalizer import normalize_job
 from app.services.notifier import BaseNotifier, EmailNotifier
 
@@ -155,6 +155,14 @@ def run_once(
                             notifier.notify(job)
                         except Exception as exc:  # noqa: BLE001
                             logger.warning("pipeline.notify_failed", extra={"error": str(exc)})
+
+        for stored in db.query(Job).all():
+            rescored = score_job(normalized_from_job(stored), profile)
+            stored.match_score = rescored.match_score
+            stored.priority = rescored.priority
+            stored.match_reason = rescored.match_reason
+            stored.missing_skills = rescored.missing_skills
+        db.commit()
 
         if sheets_sync and settings.google_sheet_id:
             _sync_sheets(db, gmail_client, settings)

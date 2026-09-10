@@ -137,3 +137,42 @@ def test_pure_frontend_role_scores_low():
     )
     result = score_job(job, PROFILE)
     assert result.match_score < 60
+
+
+def test_java_title_is_hard_skip():
+    job = _job(
+        job_title="Backend Developer - Java",
+        required_skills=["Java", "Spring"],
+        experience_min=2, experience_max=4,
+        salary_min=15, salary_max=20,
+    )
+    result = score_job(job, PROFILE)
+    assert result.match_score <= 40
+    assert result.priority == Priority.SKIP
+    assert "java" in result.match_reason.lower()
+
+
+def test_dotnet_or_javascript_skills_are_hard_skip():
+    dotnet = score_job(
+        _job(job_title="Software Engineer", required_skills=[".NET", "C#"]),
+        PROFILE,
+    )
+    js = score_job(
+        _job(job_title="Software Engineer", required_skills=["JavaScript", "Node.js"]),
+        PROFILE,
+    )
+    assert dotnet.match_score <= 40 and dotnet.priority == Priority.SKIP
+    assert js.match_score <= 40 and js.priority == Priority.SKIP
+
+
+def test_python_role_not_skipped_just_because_jd_mentions_json():
+    job = _job(
+        job_title="Python Backend Engineer",
+        required_skills=["Python", "Django", "PostgreSQL"],
+        experience_min=2, experience_max=4,
+        salary_min=15, salary_max=20,
+        job_description="Build JSON APIs with Django REST Framework.",
+    )
+    result = score_job(job, PROFILE)
+    assert result.match_score >= 80
+    assert "avoided stack" not in result.match_reason.lower()

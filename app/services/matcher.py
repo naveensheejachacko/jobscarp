@@ -19,6 +19,7 @@ Weights (must sum to 100):
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from app.config import CandidateProfile
@@ -178,12 +179,28 @@ def _score_backend_relevance(job: NormalizedJob, profile: CandidateProfile) -> t
         red_flags.append("React appears prominently — verify backend is the primary focus")
 
     for stack in profile.avoid.other_backend_stacks:
-        stack_lower = stack.lower()
-        if stack_lower in title_lower:
+        if _stack_in_text(title_lower, stack):
             score -= 50.0
             red_flags.append(f"Title suggests a {stack} role, not Python backend")
 
     return max(0.0, score), red_flags
+
+
+def _stack_in_text(haystack: str, stack: str) -> bool:
+    token = stack.lower().strip()
+    if not token:
+        return False
+    return re.search(rf"(?<![a-z0-9]){re.escape(token)}(?![a-z0-9])", haystack) is not None
+
+
+def avoided_stack(job: NormalizedJob, profile: CandidateProfile) -> str | None:
+    """Java / .NET / JavaScript etc. — title or required skills, not a vague JD mention."""
+    title = job.job_title.lower()
+    skill_blob = " ".join(job.required_skills).lower()
+    for stack in profile.avoid.other_backend_stacks:
+        if _stack_in_text(title, stack) or _stack_in_text(skill_blob, stack):
+            return stack
+    return None
 
 
 def _score_cloud_infra(job: NormalizedJob) -> float:
@@ -290,6 +307,10 @@ def score_job(job: NormalizedJob, profile: CandidateProfile) -> MatchResult:
 
     final_score = round(breakdown.total)
     final_score = max(0, min(100, final_score))
+    stack_hit = avoided_stack(job, profile)
+    if stack_hit:
+        final_score = min(final_score, 40)
+        breakdown.notes.insert(0, f"Avoided stack ({stack_hit}) — not Python backend")
     priority = priority_for_score(final_score)
 
     matched_core = sorted({s for s in job.required_skills if s.lower() in profile.all_skills_lower})

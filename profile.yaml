@@ -83,9 +83,13 @@ avoid:
   react_primary: true
   other_backend_stacks:
     - Java
+    - JavaScript
+    - JS
     - .NET
+    - C#
     - Node.js
     - Node
+    - Spring
   min_experience_hard_ceiling_years: 5 # roles requiring materially more than this score down heavily
   internships: true
   very_low_salary: true
