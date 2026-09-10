@@ -171,7 +171,7 @@ def _sync_sheets(db: Session, gmail_client: GmailClient, settings: Settings) -> 
         all_jobs = db.query(Job).all()
         sync_jobs_to_sheet(sheets_client, all_jobs)
     except Exception as exc:  # noqa: BLE001 — Sheets sync failure must not break ingestion
-        logger.warning("pipeline.sheets_sync_failed", extra={"error": str(exc)})
+            logger.warning("pipeline.sheets_sync_failed: %s", exc)
 
 
 def start_scheduler() -> BackgroundScheduler:

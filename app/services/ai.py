@@ -212,9 +212,9 @@ def safe_analyze_job(
         try:
             return provider.analyze_job(job, profile)
         except LLMResponseError as exc:
-            logger.warning("ai.analysis_failed", extra={"attempt": attempt, "error": str(exc)})
+            logger.warning("ai.analysis_failed: %s", exc)
         except Exception as exc:  # noqa: BLE001 — any provider/network failure must not crash the pipeline
-            logger.warning("ai.provider_error", extra={"attempt": attempt, "error": str(exc)})
+            logger.warning("ai.provider_error: %s", exc)
     return None
 
 

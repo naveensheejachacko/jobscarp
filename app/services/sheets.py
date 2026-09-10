@@ -112,29 +112,35 @@ class GoogleSheetsClient:
     """Real Sheets API v4 implementation, used in production (not exercised in
     unit tests — those use an in-memory fake implementing the same Protocol)."""
 
-    def __init__(self, credentials, spreadsheet_id: str, sheet_name: str = "Jobs"):
+    def __init__(self, credentials, spreadsheet_id: str, sheet_name: str | None = None):
         from googleapiclient.discovery import build
 
         self._service = build("sheets", "v4", credentials=credentials, cache_discovery=False)
         self._spreadsheet_id = spreadsheet_id
+        # None = first tab. A missing "Jobs" tab used to fail the whole sync.
         self._sheet_name = sheet_name
+
+    def _a1(self, cells: str) -> str:
+        if self._sheet_name:
+            return f"{self._sheet_name}!{cells}"
+        return cells
 
     def get_all_rows(self) -> list[list[str]]:
         result = (
             self._service.spreadsheets()
             .values()
-            .get(spreadsheetId=self._spreadsheet_id, range=f"{self._sheet_name}!A:S")
+            .get(spreadsheetId=self._spreadsheet_id, range=self._a1("A:S"))
             .execute()
         )
         return result.get("values", [])
 
     def write_all_rows(self, rows: list[list[str]]) -> None:
         self._service.spreadsheets().values().clear(
-            spreadsheetId=self._spreadsheet_id, range=f"{self._sheet_name}!A:S"
+            spreadsheetId=self._spreadsheet_id, range=self._a1("A:S")
         ).execute()
         self._service.spreadsheets().values().update(
             spreadsheetId=self._spreadsheet_id,
-            range=f"{self._sheet_name}!A1",
+            range=self._a1("A1"),
             valueInputOption="RAW",
             body={"values": rows},
         ).execute()
